@@ -40,8 +40,6 @@ for line in lines:
     elif temp[1].find('train') != -1:
         doc_train_list.append(line.strip())
 f.close()
-# print(doc_train_list)
-# print(doc_test_list)
 
 doc_content_list = []
 f = open('data/corpus/' + dataset + '.clean.txt', 'r')
@@ -49,13 +47,11 @@ lines = f.readlines()
 for line in lines:
     doc_content_list.append(line.strip())
 f.close()
-# print(doc_content_list)
 
 train_ids = []
 for train_name in doc_train_list:
     train_id = doc_name_list.index(train_name)
     train_ids.append(train_id)
-print(train_ids)
 random.shuffle(train_ids)
 
 train_ids_str = '\n'.join(str(index) for index in train_ids)
@@ -67,7 +63,6 @@ test_ids = []
 for test_name in doc_test_list:
     test_id = doc_name_list.index(test_name)
     test_ids.append(test_id)
-print(test_ids)
 random.shuffle(test_ids)
 
 test_ids_str = '\n'.join(str(index) for index in test_ids)
@@ -76,8 +71,7 @@ f.write(test_ids_str)
 f.close()
 
 ids = train_ids + test_ids
-print(ids)
-print(len(ids))
+print("len(ids)", len(ids))
 
 shuffle_doc_name_list = []
 shuffle_doc_words_list = []
@@ -165,6 +159,8 @@ f = open('data/' + dataset + '.real_train.name', 'w')
 f.write(real_train_doc_names_str)
 f.close()
 
+f_len = open('./data/' + dataset + '.len.txt', 'w')
+
 row_x = []
 col_x = []
 data_x = []
@@ -173,18 +169,16 @@ for i in range(real_train_size):
     doc_words = shuffle_doc_words_list[i]
     words = doc_words.split()
     doc_len = len(words)
+    f_len.write(str(doc_len) + '\n')
     for word in words:
         if word in word_vector_map:
             word_vector = word_vector_map[word]
-            # print(doc_vec)
-            # print(np.array(word_vector))
             doc_vec = doc_vec + np.array(word_vector)
 
     for j in range(word_embeddings_dim):
         row_x.append(i)
         col_x.append(j)
-        # np.random.uniform(-0.25, 0.25)
-        data_x.append(doc_vec[j] / doc_len)  # doc_vec[j]/ doc_len
+        data_x.append(doc_vec[j] / doc_len)
 
 x = sp.csr_matrix((data_x, (row_x, col_x)), shape=(
     real_train_size, word_embeddings_dim))
@@ -199,7 +193,6 @@ for i in range(real_train_size):
     one_hot[label_index] = 1
     y.append(one_hot)
 y = np.array(y)
-print(y)
 
 # tx: feature vectors of test docs, no initial features
 test_size = len(test_ids)
@@ -212,6 +205,7 @@ for i in range(test_size):
     doc_words = shuffle_doc_words_list[i + train_size]
     words = doc_words.split()
     doc_len = len(words)
+    f_len.write(str(doc_len) + '\n')
     for word in words:
         if word in word_vector_map:
             word_vector = word_vector_map[word]
@@ -220,10 +214,8 @@ for i in range(test_size):
     for j in range(word_embeddings_dim):
         row_tx.append(i)
         col_tx.append(j)
-        # np.random.uniform(-0.25, 0.25)
-        data_tx.append(doc_vec[j] / doc_len)  # doc_vec[j] / doc_len
+        data_tx.append(doc_vec[j] / doc_len)
 
-# tx = sp.csr_matrix((test_size, word_embeddings_dim), dtype=np.float32)
 tx = sp.csr_matrix((data_tx, (row_tx, col_tx)),
                    shape=(test_size, word_embeddings_dim))
 
@@ -237,7 +229,6 @@ for i in range(test_size):
     one_hot[label_index] = 1
     ty.append(one_hot)
 ty = np.array(ty)
-print(ty)
 
 # allx: the the feature vectors of both labeled and unlabeled training instances
 # (a superset of x)
@@ -301,7 +292,7 @@ for i in range(vocab_size):
 
 ally = np.array(ally)
 
-print(x.shape, y.shape, tx.shape, ty.shape, allx.shape, ally.shape)
+print("shaped", x.shape, y.shape, tx.shape, ty.shape, allx.shape, ally.shape)
 
 '''
 Doc word heterogeneous graph
@@ -317,11 +308,9 @@ for doc_words in shuffle_doc_words_list:
     if length <= window_size:
         windows.append(words)
     else:
-        # print(length, length - window_size + 1)
         for j in range(length - window_size + 1):
             window = words[j: j + window_size]
             windows.append(window)
-            # print(window)
 
 
 word_window_freq = {}
@@ -383,19 +372,6 @@ for key in word_pair_count:
 
 # word vector cosine similarity as weights
 
-'''
-for i in range(vocab_size):
-    for j in range(vocab_size):
-        if vocab[i] in word_vector_map and vocab[j] in word_vector_map:
-            vector_i = np.array(word_vector_map[vocab[i]])
-            vector_j = np.array(word_vector_map[vocab[j]])
-            similarity = 1.0 - cosine(vector_i, vector_j)
-            if similarity > 0.9:
-                print(vocab[i], vocab[j], similarity)
-                row.append(train_size + i)
-                col.append(train_size + j)
-                weight.append(similarity)
-'''
 # doc word frequency
 doc_word_freq = {}
 
@@ -433,6 +409,8 @@ for i in range(len(shuffle_doc_words_list)):
 node_size = train_size + vocab_size + test_size
 adj = sp.csr_matrix(
     (weight, (row, col)), shape=(node_size, node_size))
+
+f_len.close()
 
 # dump objects
 f = open("data/ind.{}.x".format(dataset), 'wb')

@@ -126,6 +126,23 @@ for i in range(len(test_mask)):
     if test_mask[i]:
         test_pred.append(pred[i])
         test_labels.append(labels[i])
+        
+test_size = len(test_pred)
+doc_len = open('./data/R8.len.txt').readlines()[-test_size:]
+doc_len = [int(doc) for doc in doc_len]
+splits = lambda x: 0 if x < 30 else 1 if x < 50 else 2 if x < 70 else 3
+sums = {0: 0, 1: 0, 2: 0, 3: 0}
+accs = {0: 0, 1: 0, 2: 0, 3: 0}
+print("sums", sums)
+print("accs", accs)
+for doc in doc_len:
+    sums[splits(doc)] += 1
+
+for i, (a, b) in enumerate(zip(test_pred, test_labels)):
+    if a == b:
+        accs[splits(doc_len[i])] += 1
+for i in range(4):
+    print(accs[i] / sums[i])
 
 print("Test Precision, Recall and F1-Score...")
 print(metrics.classification_report(test_labels, test_pred, digits=4))
@@ -177,18 +194,3 @@ doc_embeddings_str = '\n'.join(doc_vectors)
 f = open('data/' + dataset + '_doc_vectors.txt', 'w')
 f.write(doc_embeddings_str)
 f.close()
-
-
-doc_len = open('./data/R8.len.txt').readlines()
-doc_len = [int(doc) for doc in doc_len]
-splits = lambda x: 0 if x < 30 else 1 if x < 50 else 2 if x < 70 else 3
-sums = {0: 0, 1: 0, 2: 0, 3: 0}
-accs = {0: 0, 1: 0, 2: 0, 3: 0}
-for doc in doc_len:
-    sums[splits(doc)] += 1
-
-for i, (a, b) in enumerate(zip(labels[-len(doc_len):], pred[-len(doc_len):])):
-    if a == b:
-        accs[splits(doc_len[i - len(doc_len)])] += 1
-for i in range(4):
-    print(accs[i] / sums[i])
