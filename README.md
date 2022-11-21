@@ -14,3 +14,5 @@ This repo contains the source code for our text classification project.
 ## GNN
 
 ## BERT
+
+* `cl_bert.py`: source code for fine-tuning BERT with huggingce implementation and trainer
